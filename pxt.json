@@ -4,12 +4,19 @@
     "dependencies": {
         "core": "*",
         "radio": "*",
-        "microphone": "*"
+        "microphone": "*",
+        "amaker-motor": "github:Taccart/amaker-motor#0.0.4",
+        "amaker-utb-lib": "github:Taccart/amaker-unleash-the-bricks-lib#v1.0.1",
+        "amaker-bridge-radio-serial": "github:Taccart/amaker-bridge-radio-serial#0.1.0",
+        "Huskylens": "github:dfrobot/pxt-dfrobot_huskylens#v2.0.7",
+        "servo": "*",
+        "datalogger": "*"
     },
     "files": [
         "main.blocks",
         "main.ts",
-        "README.md"
+        "README.md",
+        "main.py"
     ],
     "testFiles": [
         "test.ts"
@@ -21,5 +28,5 @@
     "supportedTargets": [
         "microbit"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "pyprj"
 }
