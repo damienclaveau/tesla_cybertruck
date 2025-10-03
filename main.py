@@ -1,5 +1,9 @@
 hl_mode = 0
 
+GAME_DURATION = 300 # seconds
+TIME_TO_GO_HOME = 20 # seconds
+OBJECT_LOST_DELAY = 1 # second
+
 class ExecMode:
     MakeCode = 1 # Offline software development with no attached board
     LiveMode = 2 # Free running Robot
@@ -14,19 +18,28 @@ HUSKY_SCREEN_CENTER_X = HUSKY_SCREEN_WIDTH / 2
 HUSKY_SCREEN_CENTER_Y = HUSKY_SCREEN_HEIGHT / 2
 HUSKY_SCREEN_TOLERANCE_X = 10 # pixels
 
+
 BALL_DIAMETER = 4 # (cm) ball diameter in real world
 DISTANCE_50CM = 50 # (cm)
 BALL_FRAMESIZE_50CM = 30 # (pixels) width and height of a ball frame at 50 cm distance
 BALL_DISTANCE_RATIO = DISTANCE_50CM / BALL_FRAMESIZE_50CM
 
+QR_CODES = [
+    {"code":"id300", "cardinal": "East", "husky_learned_id": 1},
+    {"code":"id301", "cardinal": "South", "husky_learned_id": 2},
+    {"code":"id302", "cardinal": "West", "husky_learned_id": 3},
+    {"code":"id303", "cardinal": "North", "husky_learned_id": 4},
+    {"code":"id407", "cardinal": "Base", "husky_learned_id": 5}
+    ]
+
 class RobotState:
-    Halted = 1
-    Idle = 2
-    Scouting = 3
-    TrackingBall = 4
-    SearchingBalls = 5
-    SearchingHome = 6
-    GoingHome = 7
+    halted = 1
+    idle = 2
+    scouting = 3
+    trackingBall = 4
+    searchingBalls = 5
+    searchingHome = 6
+    goingHome = 7
 
 class MotionDirection:
     Idle = 1
@@ -54,8 +67,10 @@ class TrackedObject():
         self.y = y
         self.w = w
         self.h = h
+        self.lastSeen = input.running_time()
     def reset(self):
         self.setCoordinates(0,0,0,0)
+        self.lastSeen = 0
     # Compute coordinates of the TrackedObject relative to the robot position (origin)
     # (TO BE TESTED)
     # we can make it more empirical :
@@ -80,10 +95,12 @@ class TrackedObject():
         # Angle between y front-axis and the ball projected coordinates(dx,dy)
         angle_rad = Math.atan2(delta_x, delta_y)
         return Waypoint(distance, angle_rad)
-    def getLocation(self):
-        mapx = Math.map(self.x, -160, 160, 0, 80)
-        delta_x = 80 - self.x
-        delta_y = Math.map(self.y, 0, 210, 95, 160)
+
+def calculateDistance(width, height):
+    REFERENCE_SIZE = 100.0    # 100 pixels 
+    REFERENCE_DISTANCE = 50.0 # at 50 cms distance
+    size = Math.sqrt(width ** 2 + height ** 2)
+    return (REFERENCE_SIZE * REFERENCE_DISTANCE) / size
 
 trackedObject = TrackedObject()
 
@@ -93,11 +110,29 @@ def serial_log(msg: str):
     if EXEC_MODE == ExecMode.WiredMode:
         serial.write_line(msg)
     pass
+
+class Robot:
+    def __init__(self):
+        self.state = RobotState.halted
+    def setState(self, state):
+        if (self.state != state) :
+           self.state = state
+           serial_log("Robot State changed : " + str(self.state))
+
+robot = Robot()
+
 def loop_update_sensors():
     global compass_heading
     # Update Compass direction, current speed, deviation, commands coming from Bluetooth, ...
-    # Compute current position
+    # TO DO Compute current position with sensor fusion https://github.com/micropython-IMU/micropython-fusion/tree/master
     compass_heading = input.compass_heading()
+    mag_x = input.magnetic_force(Dimension.X)
+    mag_y = input.magnetic_force(Dimension.Y)
+    mag_z = input.magnetic_force(Dimension.Z)
+    acc_x = input.acceleration(Dimension.X)
+    acc_y = input.acceleration(Dimension.Y)
+    acc_z = input.acceleration(Dimension.Z)
+    acceleration = Math.sqrt(acc_x**2 + acc_y**2 + acc_z**2)
     pass
 
 #huskylens.getBox_S(1, HUSKYLENSResultType_t.HUSKYLENS_RESULT_BLOCK)
@@ -128,9 +163,27 @@ def loop_update_vision():
             else : 
                 trackedObject.reset()
         else: 
+            # if (input.running_time() - trackedObject.lastSeen) > OBJECT_LOST_DELAY:
             trackedObject.reset()
             serial_log("Tracked Object Lost")
             # > try reverse motion or look around
+    # Multiple objects
+    if (hl_mode in (
+            protocolAlgorithm.ALGORITHM_TAG_RECOGNITION,
+            protocolAlgorithm.ALGORITHM_COLOR_RECOGNITION)):
+        # for each frame, Update the relative Position of the QR codes
+        nb_frames = huskylens.getBox(HUSKYLENSResultType_t.HUSKYLENS_RESULT_BLOCK)
+        for i in range(1,nb_frames+1):
+            id = huskylens.readBox_ss(i, Content3.ID)
+            x = huskylens.readBox_ss(i, Content3.xCenter)
+            y = huskylens.readBox_ss(i, Content3.yCenter)
+            w = huskylens.readBox_ss(i, Content3.width)
+            h = huskylens.readBox_ss(i, Content3.height)
+            if hl_mode == protocolAlgorithm.ALGORITHM_TAG_RECOGNITION:
+                serial_log("QR Tag found with id " + str(id))
+                #id = qrcode["husky_learned_id"]
+            if hl_mode == protocolAlgorithm.ALGORITHM_COLOR_RECOGNITION:
+                serial_log("Colored object found with color code " + str(id))
     #######################################################
     # mode = OBJECTCLASSIFICATION
     #huskylens.get_ids()
@@ -142,9 +195,6 @@ def loop_update_vision():
     #       huskylens.readBox_ss(3, Content3.ID),
     #       huskylens.readBox_ss(4, Content3.ID)]
     # basic.show_string("" + str(object_list[0]) + ("" + str(object_list[1])) + ("" + str(object_list[2])) + ("" + str(object_list[3])))
-    #######################################################
-    # mode= ALGORITHM_COLOR_RECOGNITION
-    # if huskylens.readBox_s(Content3.ID) == 1: # "Color ID=1"
     pass
 
 def loop_compute_waypoint():
@@ -160,7 +210,7 @@ def loop_motor_controller_run():
         servos.P0.set_angle(steering)
     else:
         amaker_motor.servo_position(amaker_motor.Servos.S1, steering)
-    # Set the servo throttle power depending on the remainning distance to the waypoint
+    # Set the servo throttle power depending on the remaining distance to the waypoint
     pwm = 50 # to be computed
     if EXEC_MODE == ExecMode.MakeCode:
         servos.P1.run(pwm)
@@ -170,6 +220,14 @@ def loop_motor_controller_run():
 def loop_state_machine():
     # Based on input signals, current position, object recgnition and game instructions
     # determine the next action and next state
+    #
+    # Condition 1 : get closer to the home before the end of the game
+    # (TO DO : consider distance_to_home)
+    countdown = GAME_DURATION - runtime_ms*1000
+    if (countdown < TIME_TO_GO_HOME):
+        if robot.state not in (RobotState.searchingHome,RobotState.goingHome):
+            robot.setState(RobotState.searchingHome)
+    # Condition 2 : ...
     if EXEC_MODE == ExecMode.LiveMode:
         huskylens.init_mode(protocolAlgorithm.ALGORITHM_TAG_RECOGNITION)
         UTBBot.new_bot_status(UTBBotCode.BotStatus.IDLE)
@@ -177,12 +235,13 @@ def loop_state_machine():
     
 def loop_feedback():
     # Provide feedback to exterior using display and radio
-    basic.show_arrow(ArrowNames.NORTH)
+    # Display State
+    basic.show_number(robot.state)
+    # Send status to game server
     if EXEC_MODE == ExecMode.LiveMode:
         UTBBot.emit_status()
         UTBBot.emit_heart_beat()
     pass
-
 def loop_telemetry():
     # Log metrics and update Display
     if HUSKY_WIRED:

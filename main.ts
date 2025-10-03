@@ -1,4 +1,10 @@
 let hl_mode = 0
+let GAME_DURATION = 300
+//  seconds
+let TIME_TO_GO_HOME = 20
+//  seconds
+let OBJECT_LOST_DELAY = 1
+//  second
 class ExecMode {
     static MakeCode: number
     private ___MakeCode_is_set: boolean
@@ -63,92 +69,118 @@ let DISTANCE_50CM = 50
 let BALL_FRAMESIZE_50CM = 30
 //  (pixels) width and height of a ball frame at 50 cm distance
 let BALL_DISTANCE_RATIO = DISTANCE_50CM / BALL_FRAMESIZE_50CM
+let QR_CODES = [ {
+    "code" : "id300",
+    "cardinal" : "East",
+    "husky_learned_id" : 1,
+}
+, {
+    "code" : "id301",
+    "cardinal" : "South",
+    "husky_learned_id" : 2,
+}
+, {
+    "code" : "id302",
+    "cardinal" : "West",
+    "husky_learned_id" : 3,
+}
+, {
+    "code" : "id303",
+    "cardinal" : "North",
+    "husky_learned_id" : 4,
+}
+, {
+    "code" : "id407",
+    "cardinal" : "Base",
+    "husky_learned_id" : 5,
+}
+]
 class RobotState {
-    static Halted: number
-    private ___Halted_is_set: boolean
-    private ___Halted: number
-    get Halted(): number {
-        return this.___Halted_is_set ? this.___Halted : RobotState.Halted
+    static halted: number
+    private ___halted_is_set: boolean
+    private ___halted: number
+    get halted(): number {
+        return this.___halted_is_set ? this.___halted : RobotState.halted
     }
-    set Halted(value: number) {
-        this.___Halted_is_set = true
-        this.___Halted = value
-    }
-    
-    static Idle: number
-    private ___Idle_is_set: boolean
-    private ___Idle: number
-    get Idle(): number {
-        return this.___Idle_is_set ? this.___Idle : RobotState.Idle
-    }
-    set Idle(value: number) {
-        this.___Idle_is_set = true
-        this.___Idle = value
+    set halted(value: number) {
+        this.___halted_is_set = true
+        this.___halted = value
     }
     
-    static Scouting: number
-    private ___Scouting_is_set: boolean
-    private ___Scouting: number
-    get Scouting(): number {
-        return this.___Scouting_is_set ? this.___Scouting : RobotState.Scouting
+    static idle: number
+    private ___idle_is_set: boolean
+    private ___idle: number
+    get idle(): number {
+        return this.___idle_is_set ? this.___idle : RobotState.idle
     }
-    set Scouting(value: number) {
-        this.___Scouting_is_set = true
-        this.___Scouting = value
-    }
-    
-    static TrackingBall: number
-    private ___TrackingBall_is_set: boolean
-    private ___TrackingBall: number
-    get TrackingBall(): number {
-        return this.___TrackingBall_is_set ? this.___TrackingBall : RobotState.TrackingBall
-    }
-    set TrackingBall(value: number) {
-        this.___TrackingBall_is_set = true
-        this.___TrackingBall = value
+    set idle(value: number) {
+        this.___idle_is_set = true
+        this.___idle = value
     }
     
-    static SearchingBalls: number
-    private ___SearchingBalls_is_set: boolean
-    private ___SearchingBalls: number
-    get SearchingBalls(): number {
-        return this.___SearchingBalls_is_set ? this.___SearchingBalls : RobotState.SearchingBalls
+    static scouting: number
+    private ___scouting_is_set: boolean
+    private ___scouting: number
+    get scouting(): number {
+        return this.___scouting_is_set ? this.___scouting : RobotState.scouting
     }
-    set SearchingBalls(value: number) {
-        this.___SearchingBalls_is_set = true
-        this.___SearchingBalls = value
-    }
-    
-    static SearchingHome: number
-    private ___SearchingHome_is_set: boolean
-    private ___SearchingHome: number
-    get SearchingHome(): number {
-        return this.___SearchingHome_is_set ? this.___SearchingHome : RobotState.SearchingHome
-    }
-    set SearchingHome(value: number) {
-        this.___SearchingHome_is_set = true
-        this.___SearchingHome = value
+    set scouting(value: number) {
+        this.___scouting_is_set = true
+        this.___scouting = value
     }
     
-    static GoingHome: number
-    private ___GoingHome_is_set: boolean
-    private ___GoingHome: number
-    get GoingHome(): number {
-        return this.___GoingHome_is_set ? this.___GoingHome : RobotState.GoingHome
+    static trackingBall: number
+    private ___trackingBall_is_set: boolean
+    private ___trackingBall: number
+    get trackingBall(): number {
+        return this.___trackingBall_is_set ? this.___trackingBall : RobotState.trackingBall
     }
-    set GoingHome(value: number) {
-        this.___GoingHome_is_set = true
-        this.___GoingHome = value
+    set trackingBall(value: number) {
+        this.___trackingBall_is_set = true
+        this.___trackingBall = value
+    }
+    
+    static searchingBalls: number
+    private ___searchingBalls_is_set: boolean
+    private ___searchingBalls: number
+    get searchingBalls(): number {
+        return this.___searchingBalls_is_set ? this.___searchingBalls : RobotState.searchingBalls
+    }
+    set searchingBalls(value: number) {
+        this.___searchingBalls_is_set = true
+        this.___searchingBalls = value
+    }
+    
+    static searchingHome: number
+    private ___searchingHome_is_set: boolean
+    private ___searchingHome: number
+    get searchingHome(): number {
+        return this.___searchingHome_is_set ? this.___searchingHome : RobotState.searchingHome
+    }
+    set searchingHome(value: number) {
+        this.___searchingHome_is_set = true
+        this.___searchingHome = value
+    }
+    
+    static goingHome: number
+    private ___goingHome_is_set: boolean
+    private ___goingHome: number
+    get goingHome(): number {
+        return this.___goingHome_is_set ? this.___goingHome : RobotState.goingHome
+    }
+    set goingHome(value: number) {
+        this.___goingHome_is_set = true
+        this.___goingHome = value
     }
     
     public static __initRobotState() {
-        RobotState.Halted = 1
-        RobotState.Idle = 2
-        RobotState.Scouting = 3
-        RobotState.TrackingBall = 4
-        RobotState.SearchingBalls = 5
-        RobotState.SearchingHome = 6
-        RobotState.GoingHome = 7
+        RobotState.halted = 1
+        RobotState.idle = 2
+        RobotState.scouting = 3
+        RobotState.trackingBall = 4
+        RobotState.searchingBalls = 5
+        RobotState.searchingHome = 6
+        RobotState.goingHome = 7
     }
     
 }
@@ -274,6 +306,7 @@ class TrackedObject {
     y: number
     w: number
     h: number
+    lastSeen: number
     constructor() {
         this.isTracked = false
         this.isLearned = false
@@ -285,10 +318,12 @@ class TrackedObject {
         this.y = y
         this.w = w
         this.h = h
+        this.lastSeen = input.runningTime()
     }
     
     public reset() {
         this.setCoordinates(0, 0, 0, 0)
+        this.lastSeen = 0
     }
     
     //  Compute coordinates of the TrackedObject relative to the robot position (origin)
@@ -321,12 +356,15 @@ class TrackedObject {
         return new Waypoint(distance, angle_rad)
     }
     
-    public getLocation() {
-        let mapx = Math.map(this.x, -160, 160, 0, 80)
-        let delta_x = 80 - this.x
-        let delta_y = Math.map(this.y, 0, 210, 95, 160)
-    }
-    
+}
+
+function calculateDistance(width: number, height: number): number {
+    let REFERENCE_SIZE = 100.0
+    //  100 pixels 
+    let REFERENCE_DISTANCE = 50.0
+    //  at 50 cms distance
+    let size = Math.sqrt(width ** 2 + height ** 2)
+    return REFERENCE_SIZE * REFERENCE_DISTANCE / size
 }
 
 let trackedObject = new TrackedObject()
@@ -342,17 +380,47 @@ function serial_log(msg: string) {
     
 }
 
+class Robot {
+    state: number
+    constructor() {
+        this.state = RobotState.halted
+    }
+    
+    public setState(state: number) {
+        if (this.state != state) {
+            this.state = state
+            serial_log("Robot State changed : " + ("" + this.state))
+        }
+        
+    }
+    
+}
+
+let robot = new Robot()
 function loop_update_sensors() {
     
     //  Update Compass direction, current speed, deviation, commands coming from Bluetooth, ...
-    //  Compute current position
+    //  TO DO Compute current position with sensor fusion https://github.com/micropython-IMU/micropython-fusion/tree/master
     compass_heading = input.compassHeading()
+    let mag_x = input.magneticForce(Dimension.X)
+    let mag_y = input.magneticForce(Dimension.Y)
+    let mag_z = input.magneticForce(Dimension.Z)
+    let acc_x = input.acceleration(Dimension.X)
+    let acc_y = input.acceleration(Dimension.Y)
+    let acc_z = input.acceleration(Dimension.Z)
+    let acceleration = Math.sqrt(acc_x ** 2 + acc_y ** 2 + acc_z ** 2)
     
 }
 
 // huskylens.getBox_S(1, HUSKYLENSResultType_t.HUSKYLENS_RESULT_BLOCK)
 function loop_update_vision() {
     let objectId: number;
+    let nb_frames: number;
+    let id: number;
+    let x: number;
+    let y: number;
+    let w: number;
+    let h: number;
     //  Capture a new video frame and analyze it : is there 1 ball, no ball, a Tag, an obstacle or nothing ?
     if (!HUSKY_WIRED) {
         return
@@ -378,6 +446,7 @@ function loop_update_vision() {
             }
             
         } else {
+            //  if (input.running_time() - trackedObject.lastSeen) > OBJECT_LOST_DELAY:
             trackedObject.reset()
             serial_log("Tracked Object Lost")
         }
@@ -385,6 +454,28 @@ function loop_update_vision() {
     }
     
     //  > try reverse motion or look around
+    //  Multiple objects
+    if ([protocolAlgorithm.ALGORITHM_TAG_RECOGNITION, protocolAlgorithm.ALGORITHM_COLOR_RECOGNITION].indexOf(hl_mode) >= 0) {
+        //  for each frame, Update the relative Position of the QR codes
+        nb_frames = huskylens.getBox(HUSKYLENSResultType_t.HUSKYLENSResultBlock)
+        for (let i = 1; i < nb_frames + 1; i++) {
+            id = huskylens.readBox_ss(i, Content3.ID)
+            x = huskylens.readBox_ss(i, Content3.xCenter)
+            y = huskylens.readBox_ss(i, Content3.yCenter)
+            w = huskylens.readBox_ss(i, Content3.width)
+            h = huskylens.readBox_ss(i, Content3.height)
+            if (hl_mode == protocolAlgorithm.ALGORITHM_TAG_RECOGNITION) {
+                serial_log("QR Tag found with id " + ("" + id))
+            }
+            
+            // id = qrcode["husky_learned_id"]
+            if (hl_mode == protocolAlgorithm.ALGORITHM_COLOR_RECOGNITION) {
+                serial_log("Colored object found with color code " + ("" + id))
+            }
+            
+        }
+    }
+    
     // ######################################################
     //  mode = OBJECTCLASSIFICATION
     // huskylens.get_ids()
@@ -396,9 +487,6 @@ function loop_update_vision() {
     //        huskylens.readBox_ss(3, Content3.ID),
     //        huskylens.readBox_ss(4, Content3.ID)]
     //  basic.show_string("" + str(object_list[0]) + ("" + str(object_list[1])) + ("" + str(object_list[2])) + ("" + str(object_list[3])))
-    // ######################################################
-    //  mode= ALGORITHM_COLOR_RECOGNITION
-    //  if huskylens.readBox_s(Content3.ID) == 1: # "Color ID=1"
     
 }
 
@@ -419,7 +507,7 @@ function loop_motor_controller_run() {
         amaker_motor.servoPosition(amaker_motor.Servos.S1, steering)
     }
     
-    //  Set the servo throttle power depending on the remainning distance to the waypoint
+    //  Set the servo throttle power depending on the remaining distance to the waypoint
     let pwm = 50
     //  to be computed
     if (EXEC_MODE == ExecMode.MakeCode) {
@@ -433,6 +521,18 @@ function loop_motor_controller_run() {
 function loop_state_machine() {
     //  Based on input signals, current position, object recgnition and game instructions
     //  determine the next action and next state
+    // 
+    //  Condition 1 : get closer to the home before the end of the game
+    //  (TO DO : consider distance_to_home)
+    let countdown = GAME_DURATION - runtime_ms * 1000
+    if (countdown < TIME_TO_GO_HOME) {
+        if ([RobotState.searchingHome, RobotState.goingHome].indexOf(robot.state) < 0) {
+            robot.setState(RobotState.searchingHome)
+        }
+        
+    }
+    
+    //  Condition 2 : ...
     if (EXEC_MODE == ExecMode.LiveMode) {
         huskylens.initMode(protocolAlgorithm.ALGORITHM_TAG_RECOGNITION)
         UTBBot.newBotStatus(UTBBotCode.BotStatus.Idle)
@@ -443,7 +543,9 @@ function loop_state_machine() {
 
 function loop_feedback() {
     //  Provide feedback to exterior using display and radio
-    basic.showArrow(ArrowNames.North)
+    //  Display State
+    basic.showNumber(robot.state)
+    //  Send status to game server
     if (EXEC_MODE == ExecMode.LiveMode) {
         UTBBot.emitStatus()
         UTBBot.emitHeartBeat()

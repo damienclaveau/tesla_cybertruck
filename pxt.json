@@ -10,7 +10,8 @@
         "amaker-bridge-radio-serial": "github:Taccart/amaker-bridge-radio-serial#0.1.0",
         "Huskylens": "github:dfrobot/pxt-dfrobot_huskylens#v2.0.7",
         "servo": "*",
-        "datalogger": "*"
+        "datalogger": "*",
+        "audio-recording": "*"
     },
     "files": [
         "main.blocks",
